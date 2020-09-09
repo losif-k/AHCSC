@@ -1,0 +1,8 @@
+requests
+beautifulsoup4
+bs4
+EasyProcess
+PyVirtualDisplay
+selenium
+soupsieve
+urllib3
