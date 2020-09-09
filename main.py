@@ -4,7 +4,6 @@ import time
 from datetime import datetime
 
 from bs4 import BeautifulSoup
-from pyvirtualdisplay import Display
 from selenium import common, webdriver
 from selenium.common.exceptions import UnexpectedAlertPresentException
 from selenium.webdriver.chrome.options import Options
@@ -16,11 +15,13 @@ if sys.argv.__len__() > 1:
     scheduled_time = sys.argv[1]
 else:
     scheduled_time = datetime.now().strftime('%H%M')
-display: Display.display
 
-chrome_options = Options()
-chrome_options.add_argument("--incognito")
-chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+options = Options()
+options.add_argument("--incognito")
+options.add_experimental_option('excludeSwitches', ['enable-logging'])
+options.add_argument("headless")
+options.add_argument("window-size=1920x1080")
+options.add_argument("disable-gpu")
 
 q: dict
 q_str = ''
@@ -31,7 +32,7 @@ def cvd():
     for key, value in q.items():
         while True:
             try:
-                driver = webdriver.Chrome(options=chrome_options)
+                driver = webdriver.Chrome(options=options)
                 driver.get('https://hcs.eduro.go.kr/#/loginHome')
                 driver.find_element_by_id('btnConfirm2').click()
                 driver.find_element_by_class_name('searchBtn').click()
@@ -76,8 +77,6 @@ def cvd():
                     break
             except KeyboardInterrupt:
                 driver.close()
-                if sys.platform != 'win32':
-                    display.stop()
             else:
                 driver.close()
                 break
@@ -88,9 +87,6 @@ while True:
     now = datetime.now().strftime('%H%M')
     weekend = datetime.today().weekday() >= 5
     if now == scheduled_time and not weekend:
-        if sys.platform != 'win32':
-            display = Display(visible=0, size=(1024, 768))
-            display.start()
         with open('queue.json', 'r', encoding='UTF8') as f:
             q = json.load(f)
             for i in q:
@@ -98,6 +94,4 @@ while True:
         print(
             f"\n{datetime.now().strftime('%y/%m/%d %H:%M:%S')} : {datetime.now().strftime('%y/%m/%d')} 일자 자동 자가진단 실행\n{q_str}\n")
         cvd()
-        if sys.platform != 'win32':
-            display.stop()
     time.sleep(60)
