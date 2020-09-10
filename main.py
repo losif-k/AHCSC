@@ -1,97 +1,74 @@
+import requests
 import json
 import sys
-import time
 from datetime import datetime
+import time
 
-from bs4 import BeautifulSoup
-from selenium import common, webdriver
-from selenium.common.exceptions import UnexpectedAlertPresentException
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import Select
+headers = {
+  "Accept": "applicaton/json, text/plain, */*",
+  "Content-Type": "application/json; charset=UTF-8",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.8 Safari/537.36",
+  "Referrer": "https://hcs.eduro.go.kr/"
+}
+url = "https://senhcs.eduro.go.kr"
+endpoints = {
+    "LOGIN_WITH_SCHOOL": "/loginwithschool",
+    "CHECK_SECOND_PASSWORD": "/checkpw",
+    "LOGIN_WITH_SECOND_PASSWORD": "/secondlogin",
+    "REFRESH_USER_INFO": "/userrefresh",
+    "SEND_SURVEY_RESULT": "/registerServey"
+}
 
-run = False
-if sys.argv.__len__() > 1:
-    scheduled_time = sys.argv[1]
-else:
-    scheduled_time = datetime.now().strftime('%H%M')
 
-options = Options()
-options.add_argument("--incognito")
-options.add_experimental_option('excludeSwitches', ['enable-logging'])
-options.add_argument("headless")
-options.add_argument("window-size=1920x1080")
-options.add_argument("disable-gpu")
-
-q: dict
+payload = {
+    "rspns01": "1",
+    "rspns02": "1",
+    "rspns03": None,
+    "rspns04": None,
+    "rspns05": None,
+    "rspns06": None,
+    "rspns07": "0",
+    "rspns08": "0",
+    "rspns09": "0",
+    "rspns10": None,
+    "rspns11": None,
+    "rspns12": None,
+    "rspns13": None,
+    "rspns14": None,
+    "rspns15": None,
+    "rspns00": "Y",
+    "deviceUuid": ""
+}
 q_str = ''
+sch_time = datetime.now().strftime('%H%M')
+if sys.argv.__len__() > 1:
+    if sys.argv[1].isdigit() and sys.argv[1].__len__() == 4:
+        sch_time = sys.argv[1]
+print(sch_time)
 
 
 def cvd():
     global q_str
+    with open('queue.json', 'r', encoding='UTF8') as f:
+        q = json.load(f)
+        for s in q.keys():
+            q_str += s + ' '
     for key, value in q.items():
-        while True:
-            try:
-                driver = webdriver.Chrome(options=options)
-                driver.get('https://hcs.eduro.go.kr/#/loginHome')
-                driver.find_element_by_id('btnConfirm2').click()
-                driver.find_element_by_class_name('searchBtn').click()
-                Select(driver.find_elements_by_tag_name('select')[0]).select_by_visible_text(value['office'])
-                Select(driver.find_elements_by_tag_name('select')[1]).select_by_visible_text(value['schoolType'])
-                driver.find_element_by_class_name('searchArea').send_keys(value['schoolNm'])
-                driver.find_element_by_class_name('searchArea').send_keys(Keys.ENTER)
-                time.sleep(0.5)
-                driver.execute_script('document.getElementsByTagName("LI")[10].click()')
-                time.sleep(0.5)
-                driver.find_element_by_class_name('layerFullBtn').click()
-                driver.find_elements_by_class_name('input_text_common')[1].send_keys(key)
-                driver.find_elements_by_class_name('input_text_common')[2].send_keys(value['dob'])
-                driver.find_element_by_id('btnConfirm').click()
-                time.sleep(0.5)
-                driver.find_elements_by_tag_name('input')[0].send_keys(value['pass'])
-                time.sleep(0.5)
-                driver.find_elements_by_tag_name('input')[1].click()
-                time.sleep(1)
-                driver.execute_script('document.getElementsByTagName("a")[5].click()')
-                time.sleep(2)
-                driver.execute_script('document.getElementById("survey_q1a1").click()')
-                driver.execute_script('document.getElementById("survey_q2a1").click()')
-                driver.execute_script('document.getElementById("survey_q3a1").click()')
-                driver.execute_script('document.getElementById("survey_q4a1").click()')
-                driver.execute_script('document.getElementById("survey_q5a1").click()')
-                driver.execute_script('document.getElementById("btnConfirm").click()')
-                time.sleep(0.5)
-                print(driver.find_elements_by_tag_name('span')[6].text + f' | {key}')
-            except UnexpectedAlertPresentException as e:
-                if '마지막 설문결과 3분후 재설문이 가능합니다.' in str(e.alert_text):
-                    print(f'마지막 설문을 3분전이내에 하여 아직 자가진단을 할 수 없습니다. | {key}')
-                    q_str = q_str.replace(f'{key} ', '')
-                    driver.close()
-                    break
-                elif '클라이언트' in str(e.alert_text):
-                    driver.close()
-                else:
-                    print(f"알림 메세지가 열려 자동 자가진단이 중지 되었습니다. | {key}\n 알림 내용 : {str(e.alert_text)}")
-                    q_str = q_str.replace(f'{key} ', '')
-                    driver.close()
-                    break
-            except KeyboardInterrupt:
-                driver.close()
-            else:
-                driver.close()
-                break
-
+        response = json.loads(requests.post(url + endpoints['LOGIN_WITH_SCHOOL'], data=json.dumps({"birthday": value["birthday"], "name": value["name"], "orgcode": value["orgcode"]}), headers=headers).content)
+        headers["Authorization"] = response["token"]
+        requests.post(url + endpoints['CHECK_SECOND_PASSWORD'], data="{}", headers=headers)
+        requests.post(url + endpoints['LOGIN_WITH_SECOND_PASSWORD'], data=json.dumps({"password": value["password"]}), headers=headers)
+        requests.post(url + endpoints['REFRESH_USER_INFO'], data=json.dumps({"orgCode": value["orgcode"], "userPNo": "2020000457"}), headers=headers)
+        response = json.loads(requests.post(url + endpoints['SEND_SURVEY_RESULT'], data=json.dumps(payload), headers=headers).content)
+        print(f'\n{response["registerDtm"]} : {response["inveYmd"]} 일자 완료 - {key}')
     print(f"\n{datetime.now().strftime('%y/%m/%d %H:%M:%S')} : {datetime.now().strftime('%y/%m/%d')} 일자 자동 자가진단 완료\n{q_str}\n")
+    
+
 
 while True:
     now = datetime.now().strftime('%H%M')
     weekend = datetime.today().weekday() >= 5
-    if now == scheduled_time and not weekend:
-        with open('queue.json', 'r', encoding='UTF8') as f:
-            q = json.load(f)
-            for i in q:
-                q_str += f'{i} '
-        print(
-            f"\n{datetime.now().strftime('%y/%m/%d %H:%M:%S')} : {datetime.now().strftime('%y/%m/%d')} 일자 자동 자가진단 실행\n{q_str}\n")
+    if now == sch_time and not weekend:
+        print(f"\n{datetime.now().strftime('%y/%m/%d %H:%M:%S')} : {datetime.now().strftime('%y/%m/%d')} 일자 자동 자가진단 실행 \n{q_str}\n")
         cvd()
     time.sleep(60)
