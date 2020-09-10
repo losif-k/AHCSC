@@ -15,7 +15,6 @@ endpoints = {
     "LOGIN_WITH_SCHOOL": "/loginwithschool",
     "CHECK_SECOND_PASSWORD": "/checkpw",
     "LOGIN_WITH_SECOND_PASSWORD": "/secondlogin",
-    "REFRESH_USER_INFO": "/userrefresh",
     "SEND_SURVEY_RESULT": "/registerServey"
 }
 
@@ -58,7 +57,6 @@ def cvd():
         headers["Authorization"] = response["token"]
         requests.post(url + endpoints['CHECK_SECOND_PASSWORD'], data="{}", headers=headers)
         requests.post(url + endpoints['LOGIN_WITH_SECOND_PASSWORD'], data=json.dumps({"password": value["password"]}), headers=headers)
-        requests.post(url + endpoints['REFRESH_USER_INFO'], data=json.dumps({"orgCode": value["orgcode"], "userPNo": "2020000457"}), headers=headers)
         response = json.loads(requests.post(url + endpoints['SEND_SURVEY_RESULT'], data=json.dumps(payload), headers=headers).content)
         print(f'\n{response["registerDtm"]} : {response["inveYmd"]} 일자 완료 - {key}')
     print(f"\n{datetime.now().strftime('%y/%m/%d %H:%M:%S')} : {datetime.now().strftime('%y/%m/%d')} 일자 자동 자가진단 완료\n{q_str}\n")
