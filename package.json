@@ -1,0 +1,24 @@
+{
+  "name": "ahcsc",
+  "version": "1.0.0",
+  "description": "Auto Health Condition Self-Check",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/losif-k/AHCSC.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/losif-k/AHCSC/issues"
+  },
+  "homepage": "https://github.com/losif-k/AHCSC#readme",
+  "dependencies": {
+    "axios": "^0.20.0",
+    "dotenv": "^8.2.0",
+    "node-schedule": "^1.3.2"
+  }
+}
