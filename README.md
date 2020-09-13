@@ -11,6 +11,8 @@
   DAYOFWEEK_START = 시작 요일 설정(0 - 6)( 0 : 일요일, 6 : 토요일 )
   DAYOFWEEK_END = 마지막 요일 설정(0 - 6)( 0 : 일요일, 6 : 토요일 )
 ```
+
+#### 서울시 소재 고등학교만 가능
 ```json
 queue.json
 {
@@ -18,7 +20,7 @@ queue.json
     {
       "bd": "생년월일", 
       "pass": "비밀번호", 
-      "school": "학교명"
+      "school": "학교명" 
     }
 }
 ```
