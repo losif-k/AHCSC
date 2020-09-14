@@ -5,6 +5,7 @@ const axios = require('axios');
 require("dotenv").config();
 var scheduler = require('node-schedule');
 const { prependListener } = require("process");
+var date_ob = new Date();
 var rule = new scheduler.RecurrenceRule();
 rule.hour = Number(process.env.HOUR);
 rule.minute = Number(process.env.MINUTE);
@@ -53,7 +54,7 @@ const header = {
 };
 
 
-function asc(arg0, arg1){
+function asc(arg0, arg1, arg2, arg3){
   let encrypted_bd = encryptWithPublicKey(arg1["bd"], process.env.PUBLIC_KEY).toString("base64"),
   encrypted_name = encryptWithPublicKey(arg0, process.env.PUBLIC_KEY).toString("base64"),
   encrypted_pass = encryptWithPublicKey(arg1["pass"], process.env.PUBLIC_KEY).toString("base64"),
@@ -71,11 +72,18 @@ function asc(arg0, arg1){
     .then((res) => {
       var data = {
         orgname: res["data"]["orgname"],
-        registerYmd: res["data"]["registerYmd"],
         name: res["data"]["name"],
         isHealthy: res["data"]["isHealthy"]
       }
       console.log(data)
+      if (data["isHealthy"]) {
+        arg2.push(arg0)
+        console.log("==================================================================")
+        if (arg3) {
+          console.log('DONE : ', arg2.join(', '))
+        }
+        return 
+      } 
       var header_ = header
       header_["Authorization"] = res["data"]["token"]
       axios.post(base_url + endpoints["CHECK_SECOND_PASSWORD"], {
@@ -84,7 +92,6 @@ function asc(arg0, arg1){
         headers: header_
       })
       .then((res) => {
-        console.log(res["data"])
         axios.post(base_url + endpoints["LOGIN_WITH_SECOND_PASSWORD"], {
           password: encrypted_pass
         }, 
@@ -92,15 +99,26 @@ function asc(arg0, arg1){
           headers: header_
         })
         .then((res) => {
-          console.log(res["data"])
+          if (res["data"]["isError"]) {
+            console.log({isError: true, failCnt: res["data"]["data"]["failCnt"]})
+            console.log("==================================================================")
+            if (arg3) {
+              console.log('DONE : ', arg2.join(', '))
+            }
+            return
+          }
           axios.post(base_url + endpoints["SEND_SURVEY_RESULT"], 
             payload, 
             {
               headers: header_
             })
             .then((res) => {
-              console.log(res["data"])
-              console.log("\n==================================================================\n")
+              console.log({registerDtm: res["data"]["registerDtm"]})
+              console.log("==================================================================")
+              arg2.push(arg0)
+              if (arg3) {
+                console.log('DONE : ', arg2.join(', '))
+              }
             })
             .catch((error) => {
               console.error(error);
@@ -124,22 +142,35 @@ function asc(arg0, arg1){
   })
   
 }
-console.log("Scheduled time : "+ process.env.HOUR + ":" + process.env.MINUTE + " for week range of " + process.env.DAYOFWEEK_START + " - " + process.env.DAYOFWEEK_END )
-var dailyJob = scheduler.scheduleJob(rule, function(){
-  console.log("It's Time!!")
-  var q_str = "";
-  for (key of Object.keys(ac_q)){
-    q_str += key + " "
-  }
-  console.log(new Date().toString() + "\n" + q_str)
 
+if (Number(process.env.TEST) == 0) {
+  console.log('Testing!!')
+  rule.hour = Number(date_ob.getHours());
+  rule.minute = Number(date_ob.getMinutes());
+  rule.second = Number(date_ob.getSeconds() + 1);
+  rule.dayOfWeek = new scheduler.Range(0, 6);
+}
+else {
+  console.log("Scheduled time : "+ process.env.HOUR + ":" + process.env.MINUTE + " for week range of " + process.env.DAYOFWEEK_START + " ~ " + process.env.DAYOFWEEK_END )
+}
+var dailyJob = scheduler.scheduleJob(rule, function(){
+  var q_arr = []
+  for (key of Object.keys(ac_q)) {
+    q_arr.push(key)
+  }
+  console.log(new Date().toString() + "\n" + q_arr.join(', '))
+  q_arr = [];
   for (const i in Object.keys(ac_q)) {
     (function(x) {
       setTimeout(function() {
-        asc(Object.keys(ac_q)[x], Object.values(ac_q)[x]);
+        if (i != Object.keys(ac_q).length - 1){
+          asc(Object.keys(ac_q)[x], Object.values(ac_q)[x], q_arr, false);
+        }
+        else {
+          asc(Object.keys(ac_q)[x], Object.values(ac_q)[x], q_arr, true);
+        }
+        
       }, 1500*x);
     })(i);
   }
-  console.log("next Invocation for this Job : ", dailyJob.nextInvocation())
 });
-

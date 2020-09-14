@@ -4,7 +4,8 @@
   "description": "Auto Health Condition Self-Check",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "TEST=1 node app.js",
+    "test": "TEST=0 node app.js"
   },
   "repository": {
     "type": "git",
