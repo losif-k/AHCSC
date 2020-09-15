@@ -12,7 +12,6 @@ rule.minute = Number(process.env.MINUTE);
 rule.second = Number(process.env.SECOND);
 rule.dayOfWeek = new scheduler.Range(Number(process.env.DAYOFWEEK_START), Number(process.env.DAYOFWEEK_END));
 
-const ac_q = JSON.parse(fs.readFileSync('queue.json'));
 const base_url = "https://senhcs.eduro.go.kr";
 const endpoints = {
     "SEARCH_SCHOOL": "/school",
@@ -154,11 +153,12 @@ else {
   console.log("Scheduled time : "+ process.env.HOUR + ":" + process.env.MINUTE + " for week range of " + process.env.DAYOFWEEK_START + " ~ " + process.env.DAYOFWEEK_END )
 }
 var dailyJob = scheduler.scheduleJob(rule, function(){
+  var ac_q = JSON.parse(fs.readFileSync('queue.json'));
   var q_arr = []
   for (key of Object.keys(ac_q)) {
     q_arr.push(key)
   }
-  console.log(new Date().toString() + "\n" + q_arr.join(', '))
+  console.log('Queue Loaded [' + new Date().toString() + "]\nQueue : " + q_arr.join(', '))
   q_arr = [];
   for (const i in Object.keys(ac_q)) {
     (function(x) {
