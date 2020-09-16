@@ -53,16 +53,17 @@ const header = {
 };
 
 
-function asc(arg0, arg1, arg2, arg3){
-  let encrypted_bd = encryptWithPublicKey(arg1["bd"], process.env.PUBLIC_KEY).toString("base64"),
-  encrypted_name = encryptWithPublicKey(arg0, process.env.PUBLIC_KEY).toString("base64"),
-  encrypted_pass = encryptWithPublicKey(arg1["pass"], process.env.PUBLIC_KEY).toString("base64"),
-  school = arg1["school"];
-  axios.get(base_url + endpoints["SEARCH_SCHOOL"] + "?lctnScCode=01&schulCrseScCode=4&orgName="+encodeURI(arg1["school"])+"&currentPageNo=1") 
+function asc(ac_q, index, done){
+  let name = Object.keys(ac_q)[index], 
+  enc_bd = encryptWithPublicKey(ac_q[name]["bd"], process.env.PUBLIC_KEY).toString("base64"),
+  enc_name = encryptWithPublicKey(name, process.env.PUBLIC_KEY).toString("base64"),
+  enc_pass = encryptWithPublicKey(ac_q[name]["pass"], process.env.PUBLIC_KEY).toString("base64"),
+  school = ac_q[name]["school"];
+  axios.get(base_url + endpoints["SEARCH_SCHOOL"] + "?lctnScCode=01&schulCrseScCode=4&orgName="+encodeURI(school)+"&currentPageNo=1") 
   .then((res) => {
     axios.post(base_url + endpoints["LOGIN_WITH_SCHOOL"], {
-      birthday: encrypted_bd,
-      name : encrypted_name,
+      birthday: enc_bd,
+      name : enc_name,
       orgcode: res["data"]["schulList"][0]["orgCode"]
     }, 
     {
@@ -76,10 +77,13 @@ function asc(arg0, arg1, arg2, arg3){
       }
       console.log(data)
       if (data["isHealthy"]) {
-        arg2.push(arg0)
+        done.push(name)
         console.log("==================================================================")
-        if (arg3) {
-          console.log('DONE : ', arg2.join(', '))
+        if (index + 1 == Object.keys(ac_q).length) {
+          console.log('DONE : ', done.join(', '))
+        }
+        else {
+          asc(ac_q, index + 1, done)
         }
         return 
       } 
@@ -92,7 +96,7 @@ function asc(arg0, arg1, arg2, arg3){
       })
       .then((res) => {
         axios.post(base_url + endpoints["LOGIN_WITH_SECOND_PASSWORD"], {
-          password: encrypted_pass
+          password: enc_pass
         }, 
         {
           headers: header_
@@ -101,8 +105,11 @@ function asc(arg0, arg1, arg2, arg3){
           if (res["data"]["isError"]) {
             console.log({isError: true, failCnt: res["data"]["data"]["failCnt"]})
             console.log("==================================================================")
-            if (arg3) {
-              console.log('DONE : ', arg2.join(', '))
+            if (index + 1 == Object.keys(ac_q).length) {
+              console.log('DONE : ', done.join(', '))
+            }
+            else {
+              asc(ac_q, index + 1, done)
             }
             return
           }
@@ -114,32 +121,18 @@ function asc(arg0, arg1, arg2, arg3){
             .then((res) => {
               console.log({registerDtm: res["data"]["registerDtm"]})
               console.log("==================================================================")
-              arg2.push(arg0)
-              if (arg3) {
-                console.log('DONE : ', arg2.join(', '))
+              done.push(name)
+              if (index + 1 == Object.keys(ac_q).length) {
+                console.log('DONE : ', done.join(', '))
+              }
+              else {
+                asc(ac_q, index + 1, done)
               }
             })
-            .catch((error) => {
-              console.error(error);
-            })
-        })
-        .catch((error) => {
-          console.error(error)
         })
       })
-      .catch((error) => {
-        console.error(error)
-      })
-
-    })
-    .catch((error) => {
-      console.error(error)
     })
   })
-  .catch((error) => {
-    console.error(error)
-  })
-  
 }
 
 if (Number(process.env.TEST) == 0) {
@@ -152,6 +145,7 @@ if (Number(process.env.TEST) == 0) {
 else {
   console.log("Scheduled time : "+ process.env.HOUR + ":" + process.env.MINUTE + " for week range of " + process.env.DAYOFWEEK_START + " ~ " + process.env.DAYOFWEEK_END )
 }
+
 var dailyJob = scheduler.scheduleJob(rule, function(){
   var ac_q = JSON.parse(fs.readFileSync('queue.json'));
   var q_arr = []
@@ -159,18 +153,5 @@ var dailyJob = scheduler.scheduleJob(rule, function(){
     q_arr.push(key)
   }
   console.log('Queue Loaded [' + new Date().toString() + "]\nQueue : " + q_arr.join(', '))
-  q_arr = [];
-  for (const i in Object.keys(ac_q)) {
-    (function(x) {
-      setTimeout(function() {
-        if (i != Object.keys(ac_q).length - 1){
-          asc(Object.keys(ac_q)[x], Object.values(ac_q)[x], q_arr, false);
-        }
-        else {
-          asc(Object.keys(ac_q)[x], Object.values(ac_q)[x], q_arr, true);
-        }
-        
-      }, 1500*x);
-    })(i);
-  }
+  asc(ac_q, 0, [])
 });
