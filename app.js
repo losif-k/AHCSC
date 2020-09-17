@@ -54,7 +54,7 @@ const header = {
 
 
 function asc(ac_q, index, done){
-  let name = Object.keys(ac_q)[index], 
+  let name = Object.keys(ac_q).sort()[index],
   enc_bd = encryptWithPublicKey(ac_q[name]["bd"], process.env.PUBLIC_KEY).toString("base64"),
   enc_name = encryptWithPublicKey(name, process.env.PUBLIC_KEY).toString("base64"),
   enc_pass = encryptWithPublicKey(ac_q[name]["pass"], process.env.PUBLIC_KEY).toString("base64"),
@@ -149,7 +149,7 @@ else {
 var dailyJob = scheduler.scheduleJob(rule, function(){
   var ac_q = JSON.parse(fs.readFileSync('queue.json'));
   var q_arr = []
-  for (key of Object.keys(ac_q)) {
+  for (key of Object.keys(ac_q).sort()) {
     q_arr.push(key)
   }
   console.log('Queue Loaded [' + new Date().toString() + "]\nQueue : " + q_arr.join(', '))
