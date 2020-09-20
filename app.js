@@ -51,26 +51,9 @@ const header = {
   "Referrer": "https://hcs.eduro.go.kr/"
 };
 
-
 function asc(ac_q, index, done) {
-  var name = Object.keys(ac_q)[index]
+  var name = Object.keys(ac_q).sort()[index]
   axios.get(base_url + endpoints["SEARCH_SCHOOL"] + `?lctnScCode=${ac_q[name]["lctnScCode"]}&schulCrseScCode=${ac_q[name]["schulCrseScCode"]}&orgName=${encodeURI(ac_q[name]["orgName"])}&currentPageNo=1`)
-function asc(ac_q, index, done){
-  let name = Object.keys(ac_q).sort()[index],
-  enc_bd = encryptWithPublicKey(ac_q[name]["bd"], process.env.PUBLIC_KEY).toString("base64"),
-  enc_name = encryptWithPublicKey(name, process.env.PUBLIC_KEY).toString("base64"),
-  enc_pass = encryptWithPublicKey(ac_q[name]["pass"], process.env.PUBLIC_KEY).toString("base64"),
-  school = ac_q[name]["school"];
-  axios.get(base_url + endpoints["SEARCH_SCHOOL"] + "?lctnScCode=01&schulCrseScCode=4&orgName="+encodeURI(school)+"&currentPageNo=1") 
-  .then((res) => {
-    axios.post(base_url + endpoints["LOGIN_WITH_SCHOOL"], {
-      birthday: enc_bd,
-      name : enc_name,
-      orgcode: res["data"]["schulList"][0]["orgCode"]
-    }, 
-    {
-      headers: header
-    })
     .then((res) => {
       axios.post(base_url + endpoints["LOGIN_WITH_SCHOOL"], {
         birthday: encryptWithPublicKey(ac_q[name]["birthday"], process.env.PUBLIC_KEY).toString("base64"),
@@ -145,7 +128,6 @@ function asc(ac_q, index, done){
         })
     })
 }
-
 if (Number(process.env.TEST) == 0) {
   console.log('Testing!!')
   rule.hour = Number(date_ob.getHours());
