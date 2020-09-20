@@ -55,6 +55,22 @@ const header = {
 function asc(ac_q, index, done) {
   var name = Object.keys(ac_q)[index]
   axios.get(base_url + endpoints["SEARCH_SCHOOL"] + `?lctnScCode=${ac_q[name]["lctnScCode"]}&schulCrseScCode=${ac_q[name]["schulCrseScCode"]}&orgName=${encodeURI(ac_q[name]["orgName"])}&currentPageNo=1`)
+function asc(ac_q, index, done){
+  let name = Object.keys(ac_q).sort()[index],
+  enc_bd = encryptWithPublicKey(ac_q[name]["bd"], process.env.PUBLIC_KEY).toString("base64"),
+  enc_name = encryptWithPublicKey(name, process.env.PUBLIC_KEY).toString("base64"),
+  enc_pass = encryptWithPublicKey(ac_q[name]["pass"], process.env.PUBLIC_KEY).toString("base64"),
+  school = ac_q[name]["school"];
+  axios.get(base_url + endpoints["SEARCH_SCHOOL"] + "?lctnScCode=01&schulCrseScCode=4&orgName="+encodeURI(school)+"&currentPageNo=1") 
+  .then((res) => {
+    axios.post(base_url + endpoints["LOGIN_WITH_SCHOOL"], {
+      birthday: enc_bd,
+      name : enc_name,
+      orgcode: res["data"]["schulList"][0]["orgCode"]
+    }, 
+    {
+      headers: header
+    })
     .then((res) => {
       axios.post(base_url + endpoints["LOGIN_WITH_SCHOOL"], {
         birthday: encryptWithPublicKey(ac_q[name]["birthday"], process.env.PUBLIC_KEY).toString("base64"),
@@ -128,7 +144,6 @@ function asc(ac_q, index, done) {
             })
         })
     })
-    .catch(console.error())
 }
 
 if (Number(process.env.TEST) == 0) {
@@ -145,7 +160,7 @@ else {
 var dailyJob = scheduler.scheduleJob(rule, function () {
   var ac_q = JSON.parse(fs.readFileSync('queue.json'));
   var q_arr = []
-  for (key of Object.keys(ac_q)) {
+  for (key of Object.keys(ac_q).sort()) {
     q_arr.push(key)
   }
   console.log('Queue Loaded [' + new Date().toString() + "]\nQueue : " + q_arr.join(', '))
