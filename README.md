@@ -39,6 +39,6 @@
         * 4 : High school(고등학교)
         * 5 : Special School(특수학교)
       * orgName : School Name
-      * birthday : Day of birth
+      * birthday : Birth date
       * password : 4-digit password
 
