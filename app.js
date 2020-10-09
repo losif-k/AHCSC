@@ -128,7 +128,7 @@ function asc(ac_q, index, done) {
         })
     })
 }
-if (Number(process.env.TEST) == 0) {
+if (Number(process.env.TEST) == 1) {
   console.log('Testing!!')
   rule.hour = Number(date_ob.getHours());
   rule.minute = Number(date_ob.getMinutes());
