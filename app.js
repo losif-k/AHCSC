@@ -142,7 +142,7 @@ function asc(ac_q, index, done) {
 														headers: headers_
 													}).then((res) => {
 													result['registerDtm'] = res.data['registerDtm']
-													console.log(result)
+													console.log(JSON.stringify(result))
 													done.push(name)
 													if (index + 1 == Object.keys(ac_q).length) {
 														console.log('DONE : ', done.join(', '))
@@ -151,7 +151,7 @@ function asc(ac_q, index, done) {
 													}
 												})
 											} else {
-												console.log(result)
+												console.log(JSON.stringify(result))
 												done.push(name)
 												if (index + 1 == Object.keys(ac_q).length) {
 													console.log('DONE : ', done.join(', '))
