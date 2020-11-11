@@ -63,6 +63,55 @@ const headers = {
 	Agent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36'
 }
 
+function discord_webhook(result) {
+	if(!process.env.DISCORD_WEBHOOK_URL) {
+		return
+	}
+	var result_ = Object.assign({}, result)
+	var fields = []
+	if(result_['mention']) {
+		result_['Name'] = result['mention']
+		delete result_['mention']
+	}
+	for (const [key, value] of Object.entries(result_)) {
+		fields.push({name: key, value: value, inline: true})
+	}
+	axios.request(
+		{
+			url: process.env.DISCORD_WEBHOOK_URL,
+			method: 'post',
+			data: {
+				content: '',
+				embeds: [
+					{
+						title: 'Auto Health Codition Self Check',
+						url: 'https://github.com/losifz/AHCSC',
+						color: 5439232,
+						fields: fields,
+						author: {
+							name: 'losif',
+							url: 'http://losifz.com',
+							icon_url: 'https://avatars3.githubusercontent.com/u/54474221?s=460&u=0564e969c40c571cee8c67a6d5034b6850ff66b9&v=4'
+						},
+						footer: {
+							text: 'losif',
+							icon_url: 'https://avatars3.githubusercontent.com/u/54474221?s=460&u=0564e969c40c571cee8c67a6d5034b6850ff66b9&v=4'
+						},
+						timestamp: new Date().toISOString()
+					}
+				],
+			},
+			headers: {
+				'Content-Type': 'application/json;'
+			}
+		}
+	).catch((err) => {
+		if(err.response) {
+			console.log(err.response.status)
+		}
+	})
+}
+
 function asc(ac_q, index, done) {
 	var name = Object.keys(ac_q).sort()[index]
 	var e_name = encryptWithPublicKey(name, process.env.PUBLIC_KEY).toString('base64')
@@ -81,46 +130,50 @@ function asc(ac_q, index, done) {
 			headers: headers
 		})
 		.then((res) => {
-			result['school'] = res.data['schulList'][0]['engOrgNm']
-			axios.request(
-				{ url: base_url + endpoints.FIND_USER,
-					method: 'post',
-					data: {
-						birthday: e_birthday,
-						loginType: 'school',
-						name: e_name,
-						orgCode: res.data['schulList'][0]['orgCode'],
-						stdntPNo: null,
-					},
-					headers: headers
-				}).then((res) => {
-				result['name'] = res.data['userName']
-				var headers_ = headers
-				headers_['Authorization'] = res.data.token
+			if(res.data['schulList'].length > 0){
+				result['School'] = res.data['schulList'][0]['engOrgNm']
+				var base_url = `https://${res.data['schulList'][0]['atptOfcdcConctUrl']}`
 				axios.request(
-					{ url: base_url + endpoints.HAS_PASSWORD,
+					{ url: base_url + endpoints.FIND_USER,
 						method: 'post',
-						headers: headers_
+						data: {
+							birthday: e_birthday,
+							loginType: 'school',
+							name: e_name,
+							orgCode: res.data['schulList'][0]['orgCode'],
+							stdntPNo: null,
+						},
+						headers: headers
 					}).then((res) => {
-					if (res.data) {
-						axios.request(
-							{ url: base_url + endpoints.LOGIN_WITH_SECOND_PASSWORD,
-								method: 'post',
-								data: {
-									deviceUuid: '',
-									password: e_password
-								},
-								headers: headers_
-							}).then((res) => {
-							result['validate'] = res.data
-							if (res.data) {
-								axios.request(
-									{ url: base_url + endpoints.SELECT_GROUP_LIST,
-										method: 'post',
-										headers: headers_
-									}
-								).then((res) => {
-									if (res.data[0]['mngrYn'] == 'N') {
+					result['Name'] = res.data['userName']
+					if(ac_q[name]['mention']) {
+						result['mention'] = ac_q[name]['mention']
+					}
+					var headers_ = headers
+					headers_['Authorization'] = res.data.token
+					axios.request(
+						{ url: base_url + endpoints.HAS_PASSWORD,
+							method: 'post',
+							headers: headers_
+						}).then((res) => {
+						if (res.data) {
+							axios.request(
+								{ url: base_url + endpoints.LOGIN_WITH_SECOND_PASSWORD,
+									method: 'post',
+									data: {
+										deviceUuid: '',
+										password: e_password
+									},
+									headers: headers_
+								}).then((res) => {
+								result['Validate'] = res.data
+								if (res.data) {
+									axios.request(
+										{ url: base_url + endpoints.SELECT_GROUP_LIST,
+											method: 'post',
+											headers: headers_
+										}
+									).then((res) => {
 										axios.request(
 											{ url: base_url + endpoints.REFRESH_USER_INFO,
 												method: 'post',
@@ -130,7 +183,6 @@ function asc(ac_q, index, done) {
 												},
 												headers: headers_
 											}).then((res) => {
-											result['isHealthy'] = res.data['isHealthy']
 											if(!res.data['isHealthy']){
 												headers_['Authorization'] = res.data.token
 												payload['upperToken'] = res.data.token
@@ -141,7 +193,8 @@ function asc(ac_q, index, done) {
 														data: payload,
 														headers: headers_
 													}).then((res) => {
-													result['registerDtm'] = res.data['registerDtm']
+													result['RegisterDtm'] = res.data['registerDtm']
+													discord_webhook(result)
 													console.log(JSON.stringify(result))
 													done.push(name)
 													if (index + 1 == Object.keys(ac_q).length) {
@@ -151,6 +204,8 @@ function asc(ac_q, index, done) {
 													}
 												})
 											} else {
+												result['Healthy'] = res.data['isHealthy']
+												discord_webhook(result)
 												console.log(JSON.stringify(result))
 												done.push(name)
 												if (index + 1 == Object.keys(ac_q).length) {
@@ -161,13 +216,43 @@ function asc(ac_q, index, done) {
 												return
 											}
 										})
+										
+									})
+								} else {
+									discord_webhook(result)
+									console.log(JSON.stringify(result))
+									done.push(name)
+									if (index + 1 == Object.keys(ac_q).length) {
+										console.log('DONE : ', done.join(', '))
+									} else {
+										asc(ac_q, index + 1, done)
 									}
-								})
+								}
+							})
+						} else {
+							discord_webhook(result)
+							console.log(JSON.stringify(result))
+							done.push(name)
+							if (index + 1 == Object.keys(ac_q).length) {
+								console.log('DONE : ', done.join(', '))
+							} else {
+								asc(ac_q, index + 1, done)
 							}
-						})
-					}
+						}
+					})
 				})
-			})
+
+			} else {
+				if (index + 1 == Object.keys(ac_q).length) {
+					console.log('DONE : ', done.join(', '))
+				} else {
+					asc(ac_q, index + 1, done)
+				}
+			}
+		}).catch((error)=>{
+			if(error.response) {
+				console.log(error.response.status)
+			}
 		})
 }
 if (Number(process.env.TEST) == 1) {

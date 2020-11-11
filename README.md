@@ -10,6 +10,7 @@
       * SECOND : Second for node-schedule
       * DAYOFWEEK_START : Start day of week for node-schedule
       * DAYOFWEEK_END : End day of week for node-schedule
+      * DISCORD_WEBHOOK_URL : (optional) Discord webhook url
   * queue.json 
     * key
       * name
@@ -41,4 +42,5 @@
       * orgName : School Name
       * birthday : Birth date
       * password : 4-digit password
+      * mention : Discord User mention'<@User id >'
 
