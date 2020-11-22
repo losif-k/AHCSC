@@ -91,11 +91,11 @@ function discord_webhook(result) {
 						author: {
 							name: 'losif',
 							url: 'http://losifz.com',
-							icon_url: 'https://avatars3.githubusercontent.com/u/54474221?s=460&u=0564e969c40c571cee8c67a6d5034b6850ff66b9&v=4'
+							icon_url: 'https://avatars1.githubusercontent.com/u/54474221?s=460&u=4528d15da4babf939a10038f17427b44483dbc0f&v=4'
 						},
 						footer: {
 							text: 'losif',
-							icon_url: 'https://avatars3.githubusercontent.com/u/54474221?s=460&u=0564e969c40c571cee8c67a6d5034b6850ff66b9&v=4'
+							icon_url: 'https://avatars1.githubusercontent.com/u/54474221?s=460&u=4528d15da4babf939a10038f17427b44483dbc0f&v=4'
 						},
 						timestamp: new Date().toISOString()
 					}
