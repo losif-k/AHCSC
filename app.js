@@ -112,87 +112,122 @@ function discord_webhook(result) {
 	})
 }
 
-function asc(ac_q, index, done) {
-	var name = Object.keys(ac_q).sort()[index]
-	var e_name = encryptWithPublicKey(name, process.env.PUBLIC_KEY).toString('base64')
-	var e_birthday = encryptWithPublicKey(ac_q[name]['birthday'], process.env.PUBLIC_KEY).toString('base64')
-	var e_password = encryptWithPublicKey(ac_q[name]['password'], process.env.PUBLIC_KEY).toString('base64')
-	var result = {}
-	axios.request(
+function search_school(lctnScCode, schulCrseScCode, orgName) {
+	return axios.request(
 		{ url: base_url + endpoints.SEARCH_SCHOOL,
 			method: 'get',
 			params: {
-				lctnScCode: ac_q[name]['lctnScCode'],
-				schulCrseScCode: ac_q[name]['schulCrseScCode'],
-				orgName: ac_q[name]['orgName'],
+				lctnScCode: lctnScCode,
+				schulCrseScCode: schulCrseScCode,
+				orgName: orgName,
 				loginType: 'school',
 			},
 			headers: headers
 		})
+}
+
+function find_user(atptOfcdcConctUrl, name, birthday, orgCode) {
+	return axios.request(
+		{ url: atptOfcdcConctUrl + endpoints.FIND_USER,
+			method: 'post',
+			data: {
+				birthday: encryptWithPublicKey(birthday, process.env.PUBLIC_KEY).toString('base64'),
+				loginType: 'school',
+				name: encryptWithPublicKey(name, process.env.PUBLIC_KEY).toString('base64'),
+				orgCode: orgCode,
+				stdntPNo: null,
+			},
+			headers: headers
+		})
+}
+
+function has_password(atptOfcdcConctUrl, token) {
+	var headers_ = headers
+	headers_['Authorization'] = token
+	return axios.request(
+		{ url: atptOfcdcConctUrl + endpoints.HAS_PASSWORD,
+			method: 'post',
+			headers: headers_
+		})
+}
+
+function login_with_second_password(atptOfcdcConctUrl, token, password) {
+	var headers_ = headers
+	headers_['Authorization'] = token
+	return axios.request(
+		{ url: atptOfcdcConctUrl + endpoints.LOGIN_WITH_SECOND_PASSWORD,
+			method: 'post',
+			data: {
+				deviceUuid: '',
+				password: encryptWithPublicKey(password, process.env.PUBLIC_KEY).toString('base64')
+			},
+			headers: headers_
+		})
+}	
+
+function select_group_list(atptOfcdcConctUrl, token) {
+	var headers_ = headers
+	headers_['Authorization'] = token
+	return axios.request(
+		{ url: atptOfcdcConctUrl + endpoints.SELECT_GROUP_LIST,
+			method: 'post',
+			headers: headers_
+		}
+	)
+}
+
+function refresh_user_info(atptOfcdcConctUrl, token, orgCode, userPNo) {
+	var headers_ = headers
+	headers_['Authorization'] = token
+	return axios.request(
+		{ url: atptOfcdcConctUrl + endpoints.REFRESH_USER_INFO,
+			method: 'post',
+			data: {
+				orgCode: orgCode,
+				userPNo: userPNo
+			},
+			headers: headers_
+		})
+}
+
+function send_survey_result(atptOfcdcConctUrl, token, userNameEncpt) {
+	var headers_ = headers
+	headers_['Authorization'] = token
+	payload['upperToken'] = token
+	payload['upperUserNameEncpt'] = userNameEncpt
+	return axios.request(
+		{ url: atptOfcdcConctUrl + endpoints.SEND_SURVEY_RESULT,
+			method:'post',
+			data: payload,
+			headers: headers_
+		})
+}
+
+
+function asc(ac_q, index, done) {
+	var name = Object.keys(ac_q).sort()[index]
+	var result = {}
+	search_school(ac_q[name]['lctnScCode'], ac_q[name]['schulCrseScCode'], ac_q[name]['orgName'])
 		.then((res) => {
 			if(res.data['schulList'].length > 0){
 				result['School'] = res.data['schulList'][0]['engOrgNm']
-				var base_url = `https://${res.data['schulList'][0]['atptOfcdcConctUrl']}`
-				axios.request(
-					{ url: base_url + endpoints.FIND_USER,
-						method: 'post',
-						data: {
-							birthday: e_birthday,
-							loginType: 'school',
-							name: e_name,
-							orgCode: res.data['schulList'][0]['orgCode'],
-							stdntPNo: null,
-						},
-						headers: headers
-					}).then((res) => {
+				var atptOfcdcConctUrl = `https://${res.data['schulList'][0]['atptOfcdcConctUrl']}`
+				find_user(atptOfcdcConctUrl, name, ac_q[name]['birthday'], res.data['schulList'][0]['orgCode']).then((res) => {
 					result['Name'] = res.data['userName']
 					if(ac_q[name]['mention']) {
 						result['mention'] = ac_q[name]['mention']
 					}
-					var headers_ = headers
-					headers_['Authorization'] = res.data.token
-					axios.request(
-						{ url: base_url + endpoints.HAS_PASSWORD,
-							method: 'post',
-							headers: headers_
-						}).then((res) => {
+					var token = res.data.token
+					has_password(atptOfcdcConctUrl, token).then((res) => {
 						if (res.data) {
-							axios.request(
-								{ url: base_url + endpoints.LOGIN_WITH_SECOND_PASSWORD,
-									method: 'post',
-									data: {
-										deviceUuid: '',
-										password: e_password
-									},
-									headers: headers_
-								}).then((res) => {
+							login_with_second_password(atptOfcdcConctUrl, token, ac_q[name]['password']).then((res) => {
 								result['Validate'] = res.data
 								if (res.data) {
-									axios.request(
-										{ url: base_url + endpoints.SELECT_GROUP_LIST,
-											method: 'post',
-											headers: headers_
-										}
-									).then((res) => {
-										axios.request(
-											{ url: base_url + endpoints.REFRESH_USER_INFO,
-												method: 'post',
-												data: {
-													orgCode: res.data[0]['orgCode'],
-													userPNo: res.data[0]['userPNo']
-												},
-												headers: headers_
-											}).then((res) => {
+									select_group_list(atptOfcdcConctUrl, token).then((res) => {
+										refresh_user_info(atptOfcdcConctUrl, token, res.data[0]['orgCode'], res.data[0]['userPNo']).then((res) => {
 											if(!res.data['isHealthy']){
-												headers_['Authorization'] = res.data.token
-												payload['upperToken'] = res.data.token
-												payload['upperUserNameEncpt'] = res.data['userNameEncpt']
-												axios.request(
-													{ url: base_url + endpoints.SEND_SURVEY_RESULT,
-														method:'post',
-														data: payload,
-														headers: headers_
-													}).then((res) => {
+												token = res.data.token
+												send_survey_result(atptOfcdcConctUrl, token, res.data['userNameEncpt']).then((res) => {
 													result['RegisterDtm'] = res.data['registerDtm']
 													discord_webhook(result)
 													console.log(JSON.stringify(result))
@@ -219,9 +254,7 @@ function asc(ac_q, index, done) {
 										
 									})
 								} else {
-									discord_webhook(result)
 									console.log(JSON.stringify(result))
-									done.push(name)
 									if (index + 1 == Object.keys(ac_q).length) {
 										console.log('DONE : ', done.join(', '))
 									} else {
@@ -230,9 +263,7 @@ function asc(ac_q, index, done) {
 								}
 							})
 						} else {
-							discord_webhook(result)
 							console.log(JSON.stringify(result))
-							done.push(name)
 							if (index + 1 == Object.keys(ac_q).length) {
 								console.log('DONE : ', done.join(', '))
 							} else {
@@ -263,14 +294,7 @@ if (Number(process.env.TEST) == 1) {
 	rule.dayOfWeek = new scheduler.Range(0, 6)
 } else {
 	console.log(
-		'Scheduled time : ' +
-    process.env.HOUR +
-    ':' +
-    process.env.MINUTE +
-    ' for week range of ' +
-    process.env.DAYOFWEEK_START +
-    ' ~ ' +
-    process.env.DAYOFWEEK_END
+		`Scheduled time : ${process.env.HOUR}:${process.env.MINUTE} for week range of ${process.env.DAYOFWEEK_START} ~ ${process.env.DAYOFWEEK_END}`
 	)
 }
 
@@ -280,8 +304,6 @@ scheduler.scheduleJob(rule, function () {
 	for (var key of Object.keys(ac_q).sort()) {
 		q_arr.push(key)
 	}
-	console.log(
-		'Queue Loaded [' + new Date().toString() + ']\nQueue : ' + q_arr.join(', ')
-	)
+	console.log(`Queue Loaded [${new Date().toString()}]\nQueue : ${q_arr.join(', ')}`)
 	asc(ac_q, 0, [])
 })
