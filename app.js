@@ -135,7 +135,7 @@ function find_user(atptOfcdcConctUrl, name, birthday, orgCode) {
 				loginType: 'school',
 				name: encryptWithPublicKey(name, process.env.PUBLIC_KEY).toString('base64'),
 				orgCode: orgCode,
-				stdntPNo: null,
+				stdntPNo: null,	
 			},
 			headers: headers
 		})
@@ -209,25 +209,32 @@ function asc(ac_q, index, done) {
 	var result = {}
 	search_school(ac_q[name]['lctnScCode'], ac_q[name]['schulCrseScCode'], ac_q[name]['orgName'])
 		.then((res) => {
+			console.log("!!!!")
 			if(res.data['schulList'].length > 0){
 				result['School'] = res.data['schulList'][0]['engOrgNm']
 				var atptOfcdcConctUrl = `https://${res.data['schulList'][0]['atptOfcdcConctUrl']}`
 				find_user(atptOfcdcConctUrl, name, ac_q[name]['birthday'], res.data['schulList'][0]['orgCode']).then((res) => {
+					console.log("!!!!")
 					result['Name'] = res.data['userName']
 					if(ac_q[name]['mention']) {
 						result['mention'] = ac_q[name]['mention']
 					}
 					var token = res.data.token
 					has_password(atptOfcdcConctUrl, token).then((res) => {
+						console.log("!!!!")
 						if (res.data) {
 							login_with_second_password(atptOfcdcConctUrl, token, ac_q[name]['password']).then((res) => {
-								result['Validate'] = res.data
+								console.log("!!!!")
 								if (res.data) {
-									select_group_list(atptOfcdcConctUrl, token).then((res) => {
+									token = res.data
+									select_group_list(atptOfcdcConctUrl, token).then((res) => { //error
+										console.log("!!!!")
 										refresh_user_info(atptOfcdcConctUrl, token, res.data[0]['orgCode'], res.data[0]['userPNo']).then((res) => {
+											console.log("!!!!")
 											if(!res.data['isHealthy']){
 												token = res.data.token
 												send_survey_result(atptOfcdcConctUrl, token, res.data['userNameEncpt']).then((res) => {
+													console.log("!!!!")
 													result['RegisterDtm'] = res.data['registerDtm']
 													discord_webhook(result)
 													console.log(JSON.stringify(result))
