@@ -11,11 +11,12 @@
       * DAYOFWEEK_START : Start day of week for node-schedule
       * DAYOFWEEK_END : End day of week for node-schedule
       * DISCORD_WEBHOOK_URL : (optional) Discord webhook url
-  * queue.json 
-    * key
+      * API_URL : to get clients from api
+      * API_TOKEN : to get clients from api
+  * queue.json : Object Array [Not required if API Working]
+    * object keys
       * name
-    * value : json(Object)
-      * lctnScCode : Location Code
+      * location : Location Code
         * 01 : Seoul(서울특별시)
         * 02 : Busan(부산광역시)
         * 03 : Daegu(대구광역시)
@@ -33,13 +34,13 @@
         * 16 : Gyeongsangbuk-do(경상북도)
         * 17 : Gyeongsangnam-do(경상남도)
         * 18 : Jeju-do(제주특별자치도)
-      * schulCrseScCode : Type of school
+      * type : Type of school
         * 1 : Pre-school(유치원)
         * 2 : Elementary school(초등학교)
         * 3 : Middle school(중학교)
         * 4 : High school(고등학교)
         * 5 : Special School(특수학교)
-      * orgName : School Name
+      * school : School Name
       * birthday : Birth date
       * password : 4-digit password
       * mention : Discord User mention'<@User id >'

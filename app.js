@@ -64,17 +64,17 @@ const headers = {
 }
 
 function discord_webhook(result) {
-	if(!process.env.DISCORD_WEBHOOK_URL) {
+	if (!process.env.DISCORD_WEBHOOK_URL) {
 		return
 	}
 	var result_ = Object.assign({}, result)
 	var fields = []
-	if(result_['mention']) {
+	if (result_['mention']) {
 		result_['Name'] = result['mention']
 		delete result_['mention']
 	}
 	for (const [key, value] of Object.entries(result_)) {
-		fields.push({name: key, value: value, inline: true})
+		fields.push({ name: key, value: value, inline: true })
 	}
 	axios.request(
 		{
@@ -106,7 +106,7 @@ function discord_webhook(result) {
 			}
 		}
 	).catch((err) => {
-		if(err.response) {
+		if (err.response) {
 			console.log(err.response.status)
 		}
 	})
@@ -114,7 +114,8 @@ function discord_webhook(result) {
 
 function search_school(lctnScCode, schulCrseScCode, orgName) {
 	return axios.request(
-		{ url: base_url + endpoints.SEARCH_SCHOOL,
+		{
+			url: base_url + endpoints.SEARCH_SCHOOL,
 			method: 'get',
 			params: {
 				lctnScCode: lctnScCode,
@@ -128,14 +129,15 @@ function search_school(lctnScCode, schulCrseScCode, orgName) {
 
 function find_user(atptOfcdcConctUrl, name, birthday, orgCode) {
 	return axios.request(
-		{ url: atptOfcdcConctUrl + endpoints.FIND_USER,
+		{
+			url: atptOfcdcConctUrl + endpoints.FIND_USER,
 			method: 'post',
 			data: {
 				birthday: encryptWithPublicKey(birthday, process.env.PUBLIC_KEY).toString('base64'),
 				loginType: 'school',
 				name: encryptWithPublicKey(name, process.env.PUBLIC_KEY).toString('base64'),
 				orgCode: orgCode,
-				stdntPNo: null,	
+				stdntPNo: null,
 			},
 			headers: headers
 		})
@@ -145,7 +147,8 @@ function has_password(atptOfcdcConctUrl, token) {
 	var headers_ = headers
 	headers_['Authorization'] = token
 	return axios.request(
-		{ url: atptOfcdcConctUrl + endpoints.HAS_PASSWORD,
+		{
+			url: atptOfcdcConctUrl + endpoints.HAS_PASSWORD,
 			method: 'post',
 			headers: headers_
 		})
@@ -155,7 +158,8 @@ function login_with_second_password(atptOfcdcConctUrl, token, password) {
 	var headers_ = headers
 	headers_['Authorization'] = token
 	return axios.request(
-		{ url: atptOfcdcConctUrl + endpoints.LOGIN_WITH_SECOND_PASSWORD,
+		{
+			url: atptOfcdcConctUrl + endpoints.LOGIN_WITH_SECOND_PASSWORD,
 			method: 'post',
 			data: {
 				deviceUuid: '',
@@ -163,13 +167,14 @@ function login_with_second_password(atptOfcdcConctUrl, token, password) {
 			},
 			headers: headers_
 		})
-}	
+}
 
 function select_group_list(atptOfcdcConctUrl, token) {
 	var headers_ = headers
 	headers_['Authorization'] = token
 	return axios.request(
-		{ url: atptOfcdcConctUrl + endpoints.SELECT_GROUP_LIST,
+		{
+			url: atptOfcdcConctUrl + endpoints.SELECT_GROUP_LIST,
 			method: 'post',
 			headers: headers_
 		}
@@ -180,7 +185,8 @@ function refresh_user_info(atptOfcdcConctUrl, token, orgCode, userPNo) {
 	var headers_ = headers
 	headers_['Authorization'] = token
 	return axios.request(
-		{ url: atptOfcdcConctUrl + endpoints.REFRESH_USER_INFO,
+		{
+			url: atptOfcdcConctUrl + endpoints.REFRESH_USER_INFO,
 			method: 'post',
 			data: {
 				orgCode: orgCode,
@@ -196,49 +202,63 @@ function send_survey_result(atptOfcdcConctUrl, token, userNameEncpt) {
 	payload['upperToken'] = token
 	payload['upperUserNameEncpt'] = userNameEncpt
 	return axios.request(
-		{ url: atptOfcdcConctUrl + endpoints.SEND_SURVEY_RESULT,
-			method:'post',
+		{
+			url: atptOfcdcConctUrl + endpoints.SEND_SURVEY_RESULT,
+			method: 'post',
 			data: payload,
 			headers: headers_
 		})
 }
+var clients = []
+function getClients() {
+	clients = []
+	h_ = {
+		'Content-Type': 'application/json;',
+		'Authorization': process.env.API_TOKEN
 
+	}
+	if (process.env.API_URL && process.env.API_TOKEN) {
+		return axios.request(
+			{
+				url: process.env.API_URL,
+				method: 'get',
+				headers: h_
+			}).then((res) => {
+				for (i in res.data.results) {
+					clients.push(res.data.results[i])
+				}
+			})
+	}
+}
 
-function asc(ac_q, index, done) {
-	var name = Object.keys(ac_q).sort()[index]
+function asc(ac_q, index, done) {	
+	client = ac_q[index]
 	var result = {}
-	search_school(ac_q[name]['lctnScCode'], ac_q[name]['schulCrseScCode'], ac_q[name]['orgName'])
+	search_school(client['location'], client['type'], client['school'])
 		.then((res) => {
-			console.log("!!!!")
-			if(res.data['schulList'].length > 0){
+			if (res.data['schulList'].length > 0) {
 				result['School'] = res.data['schulList'][0]['engOrgNm']
 				var atptOfcdcConctUrl = `https://${res.data['schulList'][0]['atptOfcdcConctUrl']}`
-				find_user(atptOfcdcConctUrl, name, ac_q[name]['birthday'], res.data['schulList'][0]['orgCode']).then((res) => {
-					console.log("!!!!")
+				find_user(atptOfcdcConctUrl, client['name'], client['birthday'], res.data['schulList'][0]['orgCode']).then((res) => {
 					result['Name'] = res.data['userName']
-					if(ac_q[name]['mention']) {
-						result['mention'] = ac_q[name]['mention']
+					if (client['mention']) {
+						result['mention'] = client['mention']
 					}
 					var token = res.data.token
 					has_password(atptOfcdcConctUrl, token).then((res) => {
-						console.log("!!!!")
 						if (res.data) {
-							login_with_second_password(atptOfcdcConctUrl, token, ac_q[name]['password']).then((res) => {
-								console.log("!!!!")
+							login_with_second_password(atptOfcdcConctUrl, token, client['password']).then((res) => {
 								if (res.data) {
 									token = res.data
-									select_group_list(atptOfcdcConctUrl, token).then((res) => { //error
-										console.log("!!!!")
+									select_group_list(atptOfcdcConctUrl, token).then((res) => {
 										refresh_user_info(atptOfcdcConctUrl, token, res.data[0]['orgCode'], res.data[0]['userPNo']).then((res) => {
-											console.log("!!!!")
-											if(!res.data['isHealthy']){
+											if (!res.data['isHealthy']) {
 												token = res.data.token
 												send_survey_result(atptOfcdcConctUrl, token, res.data['userNameEncpt']).then((res) => {
-													console.log("!!!!")
 													result['RegisterDtm'] = res.data['registerDtm']
 													discord_webhook(result)
 													console.log(JSON.stringify(result))
-													done.push(name)
+													done.push(client['name'])
 													if (index + 1 == Object.keys(ac_q).length) {
 														console.log('DONE : ', done.join(', '))
 													} else {
@@ -249,7 +269,7 @@ function asc(ac_q, index, done) {
 												result['Healthy'] = res.data['isHealthy']
 												discord_webhook(result)
 												console.log(JSON.stringify(result))
-												done.push(name)
+												done.push(client['name'])
 												if (index + 1 == Object.keys(ac_q).length) {
 													console.log('DONE : ', done.join(', '))
 												} else {
@@ -258,7 +278,7 @@ function asc(ac_q, index, done) {
 												return
 											}
 										})
-										
+
 									})
 								} else {
 									console.log(JSON.stringify(result))
@@ -287,8 +307,8 @@ function asc(ac_q, index, done) {
 					asc(ac_q, index + 1, done)
 				}
 			}
-		}).catch((error)=>{
-			if(error.response) {
+		}).catch((error) => {
+			if (error.response) {
 				console.log(error.response.status)
 			}
 		})
@@ -305,12 +325,34 @@ if (Number(process.env.TEST) == 1) {
 	)
 }
 
-scheduler.scheduleJob(rule, function () {
-	var ac_q = JSON.parse(fs.readFileSync('queue.json'))
-	var q_arr = []
-	for (var key of Object.keys(ac_q).sort()) {
-		q_arr.push(key)
+scheduler.scheduleJob(rule, async () => {
+
+	if (process.env.API_URL) {
+		await getClients().then(() => {
+			var ac_q = clients
+			tmp = []
+			for (i in ac_q) {
+				tmp.push(ac_q[i])
+			}
+			ac_q = tmp
+			ac_q.sort((a, b) => (a.name > b.name ? 1 : -1))
+			q_arr = []
+			for (n of ac_q) {
+				q_arr.push(n['name'])
+			}
+			console.log(`Queue Loaded [${new Date().toString()}]\nQueue : ${q_arr.join(', ')}`)
+			asc(ac_q, 0, [])
+		})
+	} else {
+		var ac_q = JSON.parse(fs.readFileSync('queue.json'))
+		ac_q.sort((a, b) => (a.name > b.name ? 1 : -1))
+		q_arr = []
+		for (n of ac_q) {
+			q_arr.push(n['name'])
+		}
+		console.log(`Queue Loaded [${new Date().toString()}]\nQueue : ${q_arr.join(', ')}`)
+		asc(ac_q, 0, [])
 	}
-	console.log(`Queue Loaded [${new Date().toString()}]\nQueue : ${q_arr.join(', ')}`)
-	asc(ac_q, 0, [])
+
+
 })
