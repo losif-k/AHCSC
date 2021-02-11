@@ -13,7 +13,7 @@
       * DISCORD_WEBHOOK_URL : (optional) Discord webhook url
       * API_URL : to get clients from api
       * API_TOKEN : to get clients from api
-  * queue.json : Object Array [Not required if API Working]
+  * queue.json : Object Array [Not required if API is working]
     * object keys
       * name
       * location : Location Code
